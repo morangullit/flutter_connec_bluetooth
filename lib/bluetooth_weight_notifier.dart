@@ -16,6 +16,7 @@ class BluetoothWeightNotifier extends ChangeNotifier {
   String? get connectedDeviceName => _connectedDeviceName;
   String? get connectedDeviceAddress => _connectedDeviceAddress;
   bool get isConnected => _connection != null && _connection!.isConnected;
+  List<double> weightHistory = [];
 
   final StreamController<double> _weightStreamController = StreamController<double>.broadcast();
   Stream<double> get weightStream => _weightStreamController.stream;
@@ -113,6 +114,11 @@ class BluetoothWeightNotifier extends ChangeNotifier {
     _weightStreamController.sink.add(newWeight);
     notifyListeners();
     print('Nuevo Peso: $newWeight');
+  }
+
+  void captureWeight(double weight) {
+    weightHistory.add(weight);
+    notifyListeners();
   }
 
   @override

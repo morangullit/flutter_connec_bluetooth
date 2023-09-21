@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'bluetooth_weight_notifier.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +29,10 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const WeightDisplay(),
+            const SizedBox(height: 20),
+            Expanded(
+              child: WeightHistoryList(), // Permitir hacer scroll en el historial de pesos.
+            ),
           ],
         ),
       ),
@@ -111,14 +115,44 @@ class HomePage extends StatelessWidget {
 }
 
 class WeightDisplay extends StatelessWidget {
-  const WeightDisplay({super.key});
+  const WeightDisplay({Key? key});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<BluetoothWeightNotifier>(
       builder: (context, bluetoothNotifier, child) {
         double weight = bluetoothNotifier.weight;
-        return Text('Peso: $weight');
+        return ElevatedButton(
+          onPressed: () {
+            // Capturar el peso y agregarlo a la lista
+            bluetoothNotifier.captureWeight(weight);
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16.0),
+            child: Text('Peso: $weight'),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class WeightHistoryList extends StatelessWidget {
+  const WeightHistoryList({Key? key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<BluetoothWeightNotifier>(
+      builder: (context, bluetoothNotifier, child) {
+        List<double> weightHistory = bluetoothNotifier.weightHistory;
+        return ListView.builder(
+          itemCount: weightHistory.length,
+          itemBuilder: (context, index) {
+            return ListTile(
+              title: Text('Peso: ${weightHistory[index].toStringAsFixed(2)}'), // Mostrar dos decimales.
+            );
+          },
+        );
       },
     );
   }
