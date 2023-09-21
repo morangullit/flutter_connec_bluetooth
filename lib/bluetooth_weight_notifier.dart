@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
@@ -5,14 +7,14 @@ class BluetoothWeightNotifier extends ChangeNotifier {
   BluetoothConnection? _connection;
   double _weight = 0.0;
   BluetoothDevice? _connectedDevice;
-  String? _connectedDeviceName; // Nueva propiedad para almacenar el nombre del dispositivo
-  String? _connectedDeviceAddress; // Nueva propiedad para almacenar la dirección MAC del dispositivo
+  String? _connectedDeviceName;
+  String? _connectedDeviceAddress;
 
   BluetoothConnection? get connection => _connection;
   double get weight => _weight;
   BluetoothDevice? get connectedDevice => _connectedDevice;
-  String? get connectedDeviceName => _connectedDeviceName; // Propiedad para el nombre del dispositivo
-  String? get connectedDeviceAddress => _connectedDeviceAddress; // Propiedad para la dirección MAC del dispositivo
+  String? get connectedDeviceName => _connectedDeviceName;
+  String? get connectedDeviceAddress => _connectedDeviceAddress;
   bool get isConnected => _connection != null && _connection!.isConnected;
 
   Future<List<BluetoothDevice>> scanForDevices() async {
@@ -25,7 +27,40 @@ class BluetoothWeightNotifier extends ChangeNotifier {
     }
   }
 
-  Future<void> connectToDevice(String address) async {
+  void startReadingData() {
+    if (_connection != null && _connection!.isConnected) {
+      List<int> buffer = [];
+      _connection!.input!.listen((Uint8List data) {
+        for (int byte in data) {
+          if (byte == 8 || byte == 127) {
+            // Manejo de retrocesos (backspaces)
+            if (buffer.isNotEmpty) {
+              buffer.removeLast();
+            }
+          } else {
+            buffer.add(byte);
+          }
+        }
+
+        String dataString = String.fromCharCodes(buffer);
+
+        // Utiliza una expresión regular para extraer el valor del peso
+        final regExp = RegExp(r'([0-9]+.[0-9]+)');
+        final match = regExp.firstMatch(dataString);
+
+        if (match != null) {
+          final weightValue = match.group(0);
+          final newWeight = double.tryParse(weightValue!);
+
+          if (newWeight != null) {
+            updateWeight(newWeight);
+          }
+        }
+      });
+    }
+  }
+
+  void connectToDevice(String address) async {
     if (_connection != null && _connection!.isConnected) {
       _connection!.dispose();
     }
@@ -40,16 +75,19 @@ class BluetoothWeightNotifier extends ChangeNotifier {
     try {
       _connection = await BluetoothConnection.toAddress(address);
       _connectedDevice = device;
-      _connectedDeviceName = device.name; // Almacena el nombre del dispositivo
-      _connectedDeviceAddress = device.address; // Almacena la dirección MAC del dispositivo
+      _connectedDeviceName = device.name;
+      _connectedDeviceAddress = device.address;
       print('Conectado a ${device.name}');
+
+      // Inicia la lectura de datos desde el dispositivo Bluetooth después de conectarse.
+      startReadingData();
+
       notifyListeners();
     } catch (ex) {
       print('No se pudo conectar al dispositivo: $ex');
     }
   }
 
-  // Método para desconectar el dispositivo Bluetooth
   void disconnectDevice() {
     if (_connection != null && _connection!.isConnected) {
       _connection!.dispose();
