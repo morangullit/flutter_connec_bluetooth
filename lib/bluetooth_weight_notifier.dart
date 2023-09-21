@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 
@@ -17,6 +17,9 @@ class BluetoothWeightNotifier extends ChangeNotifier {
   String? get connectedDeviceAddress => _connectedDeviceAddress;
   bool get isConnected => _connection != null && _connection!.isConnected;
 
+  final StreamController<double> _weightStreamController = StreamController<double>.broadcast();
+  Stream<double> get weightStream => _weightStreamController.stream;
+
   Future<List<BluetoothDevice>> scanForDevices() async {
     try {
       List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance.getBondedDevices();
@@ -27,13 +30,10 @@ class BluetoothWeightNotifier extends ChangeNotifier {
     }
   }
 
-  void startReadingData() {
-    if (_connection != null && _connection!.isConnected) {
-      List<int> buffer = [];
-      _connection!.input!.listen((Uint8List data) {
-        for (int byte in data) {
+  void _datareceives (Uint8List data){
+    List<int> buffer = [];
+     for (int byte in data) {
           if (byte == 8 || byte == 127) {
-            // Manejo de retrocesos (backspaces)
             if (buffer.isNotEmpty) {
               buffer.removeLast();
             }
@@ -42,21 +42,25 @@ class BluetoothWeightNotifier extends ChangeNotifier {
           }
         }
 
+        final regExp = RegExp(r'([0-9]+.[0-9]+)kg');
         String dataString = String.fromCharCodes(buffer);
 
-        // Utiliza una expresión regular para extraer el valor del peso
-        final regExp = RegExp(r'([0-9]+.[0-9]+)');
         final match = regExp.firstMatch(dataString);
 
         if (match != null) {
-          final weightValue = match.group(0);
+          final weightValue = match.group(1);
           final newWeight = double.tryParse(weightValue!);
 
           if (newWeight != null) {
             updateWeight(newWeight);
+            
           }
         }
-      });
+  }
+
+  void startReadingData() {
+    if (_connection != null && _connection!.isConnected) {
+      _connection!.input!.listen(_datareceives).onDone(() { });
     }
   }
 
@@ -79,7 +83,6 @@ class BluetoothWeightNotifier extends ChangeNotifier {
       _connectedDeviceAddress = device.address;
       print('Conectado a ${device.name}');
 
-      // Inicia la lectura de datos desde el dispositivo Bluetooth después de conectarse.
       startReadingData();
 
       notifyListeners();
@@ -101,8 +104,15 @@ class BluetoothWeightNotifier extends ChangeNotifier {
   }
 
   void updateWeight(double newWeight) {
+    final formattedWeight = newWeight.toStringAsFixed(2);
+    final formattedWeightWithZero = formattedWeight.endsWith(".00")
+      ? formattedWeight
+      : "${formattedWeight}0";
+    _weight = double.parse(formattedWeightWithZero);
     _weight = newWeight;
+    _weightStreamController.sink.add(newWeight);
     notifyListeners();
+    print('Nuevo Peso: $newWeight');
   }
 
   @override
@@ -110,6 +120,7 @@ class BluetoothWeightNotifier extends ChangeNotifier {
     if (_connection != null) {
       _connection!.dispose();
     }
+    _weightStreamController.close(); // Cerrar el StreamController.
     super.dispose();
   }
 }
