@@ -22,6 +22,8 @@ class HomePage extends StatelessWidget {
                   children: <Widget>[
                     if (bluetoothNotifier.isConnected)
                       Text('Conectado a: ${bluetoothNotifier.connectedDeviceName ?? "Dispositivo desconocido"}'),
+                      if (bluetoothNotifier.isConnecting)
+                      Text('Conectando al dispositivo...'),
                     Text('Dirección MAC: ${bluetoothNotifier.connectedDeviceAddress ?? "Desconocida"}'),
                   ],
                 );

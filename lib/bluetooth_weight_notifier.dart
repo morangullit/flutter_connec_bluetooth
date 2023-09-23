@@ -9,6 +9,8 @@ class BluetoothWeightNotifier extends ChangeNotifier {
   BluetoothDevice? _connectedDevice;
   String? _connectedDeviceName;
   String? _connectedDeviceAddress;
+  bool _isConnecting = false;
+  bool get isConnecting => _isConnecting;
 
   BluetoothConnection? get connection => _connection;
   double get weight => _weight;
@@ -78,6 +80,9 @@ class BluetoothWeightNotifier extends ChangeNotifier {
     );
 
     try {
+      _isConnecting = true;
+      notifyListeners();
+
       _connection = await BluetoothConnection.toAddress(address);
       _connectedDevice = device;
       _connectedDeviceName = device.name;
@@ -85,9 +90,11 @@ class BluetoothWeightNotifier extends ChangeNotifier {
       print('Conectado a ${device.name}');
 
       startReadingData();
-
+      _isConnecting = false;
       notifyListeners();
     } catch (ex) {
+      _isConnecting = false;
+      notifyListeners();
       print('No se pudo conectar al dispositivo: $ex');
     }
   }
