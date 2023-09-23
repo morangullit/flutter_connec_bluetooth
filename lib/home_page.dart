@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'bluetooth_weight_notifier.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({Key? key});
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,7 @@ class HomePage extends StatelessWidget {
                     if (bluetoothNotifier.isConnected)
                       Text('Conectado a: ${bluetoothNotifier.connectedDeviceName ?? "Dispositivo desconocido"}'),
                       if (bluetoothNotifier.isConnecting)
-                      Text('Conectando al dispositivo...'),
+                      const Text('Conectando al dispositivo...'),
                     Text('Dirección MAC: ${bluetoothNotifier.connectedDeviceAddress ?? "Desconocida"}'),
                   ],
                 );
@@ -31,8 +31,8 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             const WeightDisplay(),
-            const SizedBox(height: 20),
-            Expanded(
+            const SizedBox(height: 200),
+            const Expanded(
               child: WeightHistoryList(), // Permitir hacer scroll en el historial de pesos.
             ),
           ],
@@ -117,7 +117,7 @@ class HomePage extends StatelessWidget {
 }
 
 class WeightDisplay extends StatelessWidget {
-  const WeightDisplay({Key? key});
+  const WeightDisplay({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +130,7 @@ class WeightDisplay extends StatelessWidget {
             bluetoothNotifier.captureWeight(weight);
           },
           child: Container(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20.0),
             child: Text('Peso: $weight'),
           ),
         );
@@ -140,22 +140,47 @@ class WeightDisplay extends StatelessWidget {
 }
 
 class WeightHistoryList extends StatelessWidget {
-  const WeightHistoryList({Key? key});
+  const WeightHistoryList({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<BluetoothWeightNotifier>(
       builder: (context, bluetoothNotifier, child) {
-        List<double> weightHistory = bluetoothNotifier.weightHistory;
-        return ListView.builder(
-          itemCount: weightHistory.length,
-          itemBuilder: (context, index) {
-            return ListTile(
-              title: Text('Peso: ${weightHistory[index].toStringAsFixed(2)}'), // Mostrar dos decimales.
-            );
-          },
+        List<double> weightHistory = bluetoothNotifier.weightHistory.reversed.toList();
+        return Card(
+          elevation: 4.0,
+          child: Column(
+            children: <Widget>[
+              const ListTile(
+                title: Text('Historial de Pesos'),
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView.builder(
+                  reverse: false, 
+                  itemCount: weightHistory.length,
+                  itemBuilder: (context, index) {
+                    final weight = weightHistory[index];
+                    String weightText;
+                    if(weight < 1){
+                      weightText = 'Peso: ${weight.toStringAsFixed(2)} gr';
+                    } else {
+                      weightText = 'Peso: ${weight.toStringAsFixed(2)} kg';
+                    }
+                    return ListTile(
+                      title: Text(weightText),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
 }
+
+
+
+
