@@ -33,33 +33,34 @@ class BluetoothWeightNotifier extends ChangeNotifier {
     }
   }
 
-  void _datareceives (Uint8List data){
-    List<int> buffer = [];
-     for (int byte in data) {
-          if (byte == 8 || byte == 127) {
-            if (buffer.isNotEmpty) {
-              buffer.removeLast();
-            }
-          } else {
-            buffer.add(byte);
-          }
-        }
+ String _buffer = "";
 
-        final regExp = RegExp(r'([0-9]+.[0-9]+)kg');
-        String dataString = String.fromCharCodes(buffer);
+void _datareceives(Uint8List data) {
+  _buffer += String.fromCharCodes(data);
+  
+  final lines = _buffer.split("\n");
+  
+  for (var line in lines) {
+    final regExp = RegExp(r'([0-9]+.[0-9]+)kg');
+    final match = regExp.firstMatch(line);
 
-        final match = regExp.firstMatch(dataString);
+    if (match != null) {
+      final weightValue = match.group(1);
+      final newWeight = double.tryParse(weightValue!);
 
-        if (match != null) {
-          final weightValue = match.group(1);
-          final newWeight = double.tryParse(weightValue!);
-
-          if (newWeight != null) {
-            updateWeight(newWeight);
-            
-          }
-        }
+      if (newWeight != null) {
+        updateWeight(newWeight);
+      }
+    }
   }
+
+  // Mantener cualquier fragmento de línea incompleta en el buffer
+  if (lines.isNotEmpty) {
+    _buffer = lines.last;
+  } else {
+    _buffer = "";
+  }
+}
 
   void startReadingData() {
     if (_connection != null && _connection!.isConnected) {
