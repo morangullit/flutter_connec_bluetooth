@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:provider/provider.dart';
@@ -21,10 +23,12 @@ class HomePage extends StatelessWidget {
                 return Column(
                   children: <Widget>[
                     if (bluetoothNotifier.isConnected)
-                      Text('Conectado a: ${bluetoothNotifier.connectedDeviceName ?? "Dispositivo desconocido"}'),
-                      if (bluetoothNotifier.isConnecting)
+                      Text(
+                          'Conectado a: ${bluetoothNotifier.connectedDeviceName ?? "Dispositivo desconocido"}'),
+                    if (bluetoothNotifier.isConnecting)
                       const Text('Conectando al dispositivo...'),
-                    Text('Dirección MAC: ${bluetoothNotifier.connectedDeviceAddress ?? "Desconocida"}'),
+                    Text(
+                        'Dirección MAC: ${bluetoothNotifier.connectedDeviceAddress ?? "Desconocida"}'),
                   ],
                 );
               },
@@ -33,7 +37,8 @@ class HomePage extends StatelessWidget {
             const WeightDisplay(),
             const SizedBox(height: 200),
             const Expanded(
-              child: WeightHistoryList(), // Permitir hacer scroll en el historial de pesos.
+              child:
+                  WeightHistoryList(), // Permitir hacer scroll en el historial de pesos.
             ),
           ],
         ),
@@ -42,25 +47,64 @@ class HomePage extends StatelessWidget {
         builder: (context, bluetoothNotifier, child) {
           return FloatingActionButton(
             onPressed: () async {
-              if (!bluetoothNotifier.isConnected) {
-                List<BluetoothDevice> devices = await bluetoothNotifier.scanForDevices();
+              final isBluetoothEnabled =
+                  await FlutterBluetoothSerial.instance.isEnabled;
+
+              if (!isBluetoothEnabled!) {
+                // Bluetooth está desactivado, mostrar diálogo para activarlo.
+                showDialog(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return AlertDialog(
+                      title: const Text('Activar Bluetooth'),
+                      content: const Text(
+                          'Por favor, active el Bluetooth para conectar dispositivos.'),
+                      actions: <Widget>[
+                        TextButton(
+                          child: const Text('Cancelar'),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                        TextButton(
+                          child: const Text('Activar Bluetooth'),
+                          onPressed: () async {
+                            Navigator.of(context).pop();
+                            // Abrir la página de configuración de Bluetooth del dispositivo
+                            await FlutterBluetoothSerial.instance
+                                .requestEnable();
+                          },
+                        ),
+                      ],
+                    );
+                  },
+                );
+              } else if (!bluetoothNotifier.isConnected) {
+                List<BluetoothDevice> devices =
+                    await bluetoothNotifier.scanForDevices();
                 if (devices.isNotEmpty) {
-                  _showDeviceSelectionDialog(context, devices, bluetoothNotifier);
+                  _showDeviceSelectionDialog(
+                      context, devices, bluetoothNotifier);
                 } else {
-                  print('No se encontraron dispositivos Bluetooth disponibles.');
+                  //print('No se encontraron dispositivos Bluetooth disponibles.');
                 }
               } else {
                 _showDisconnectDialog(context, bluetoothNotifier);
               }
             },
-            child: Icon(bluetoothNotifier.isConnected ? Icons.bluetooth_disabled : Icons.bluetooth),
+            child: Icon(bluetoothNotifier.isConnected
+                ? Icons.bluetooth_disabled
+                : Icons.bluetooth),
           );
         },
       ),
     );
   }
 
-  Future<void> _showDeviceSelectionDialog(BuildContext context, List<BluetoothDevice> devices, BluetoothWeightNotifier bluetoothNotifier) async {
+  Future<void> _showDeviceSelectionDialog(
+      BuildContext context,
+      List<BluetoothDevice> devices,
+      BluetoothWeightNotifier bluetoothNotifier) async {
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
@@ -85,28 +129,33 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Future<void> _showDisconnectDialog(BuildContext context, BluetoothWeightNotifier bluetoothNotifier) async {
+  Future<void> _showDisconnectDialog(
+      BuildContext context, BluetoothWeightNotifier bluetoothNotifier) async {
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Desconectar dispositivo'),
           content: ListTile(
-            title: Text('Conectado a: ${bluetoothNotifier.connectedDeviceName ?? "Dispositivo desconocido"}'),
-            subtitle: Text('Dirección MAC: ${bluetoothNotifier.connectedDeviceAddress ?? "Desconocida"}'),
+            title: Text(
+                'Conectado a: ${bluetoothNotifier.connectedDeviceName ?? "Dispositivo desconocido"}'),
+            subtitle: Text(
+                'Dirección MAC: ${bluetoothNotifier.connectedDeviceAddress ?? "Desconocida"}'),
           ),
           actions: <Widget>[
             TextButton(
               child: const Text('Cancelar'),
               onPressed: () {
-                Navigator.of(context).pop(); // Cierra el diálogo sin desconectar.
+                Navigator.of(context)
+                    .pop(); // Cierra el diálogo sin desconectar.
               },
             ),
             TextButton(
               child: const Text('Desconectar'),
               onPressed: () {
                 bluetoothNotifier.disconnectDevice();
-                Navigator.of(context).pop(); // Cierra el diálogo después de desconectar.
+                Navigator.of(context)
+                    .pop(); // Cierra el diálogo después de desconectar.
               },
             ),
           ],
@@ -126,8 +175,29 @@ class WeightDisplay extends StatelessWidget {
         double weight = bluetoothNotifier.weight;
         return ElevatedButton(
           onPressed: () {
-            // Capturar el peso y agregarlo a la lista
-            bluetoothNotifier.captureWeight(weight);
+            if (bluetoothNotifier.isConnected) {
+              // Solo capturar el peso si está conectado al dispositivo Bluetooth
+              bluetoothNotifier.captureWeight(weight);
+            } else {
+              // Mostrar un mensaje de error si no está conectado
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('Error de conexión'),
+                    content: const Text('Para capturar el peso, debe estar conectado al dispositivo Bluetooth.'),
+                    actions: <Widget>[
+                      TextButton(
+                        child: const Text('Aceptar'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+            }
           },
           child: Container(
             padding: const EdgeInsets.all(20.0),
@@ -146,7 +216,8 @@ class WeightHistoryList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<BluetoothWeightNotifier>(
       builder: (context, bluetoothNotifier, child) {
-        List<double> weightHistory = bluetoothNotifier.weightHistory.reversed.toList();
+        List<double> weightHistory =
+            bluetoothNotifier.weightHistory.reversed.toList();
         return Card(
           elevation: 4.0,
           child: Column(
@@ -157,12 +228,12 @@ class WeightHistoryList extends StatelessWidget {
               const Divider(),
               Expanded(
                 child: ListView.builder(
-                  reverse: false, 
+                  reverse: false,
                   itemCount: weightHistory.length,
                   itemBuilder: (context, index) {
                     final weight = weightHistory[index];
                     String weightText;
-                    if(weight < 1){
+                    if (weight < 1) {
                       weightText = 'Peso: ${weight.toStringAsFixed(2)} gr';
                     } else {
                       weightText = 'Peso: ${weight.toStringAsFixed(2)} kg';
@@ -180,7 +251,3 @@ class WeightHistoryList extends StatelessWidget {
     );
   }
 }
-
-
-
-
