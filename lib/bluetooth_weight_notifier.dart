@@ -28,7 +28,7 @@ class BluetoothWeightNotifier extends ChangeNotifier {
       List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance.getBondedDevices();
       return devices;
     } catch (ex) {
-      print('Error al escanear dispositivos Bluetooth: $ex');
+      //print('Error al escanear dispositivos Bluetooth: $ex');
       return [];
     }
   }
@@ -88,7 +88,7 @@ void _datareceives(Uint8List data) {
       _connectedDevice = device;
       _connectedDeviceName = device.name;
       _connectedDeviceAddress = device.address;
-      print('Conectado a ${device.name}');
+      //print('Conectado a ${device.name}');
 
       startReadingData();
       _isConnecting = false;
@@ -96,7 +96,7 @@ void _datareceives(Uint8List data) {
     } catch (ex) {
       _isConnecting = false;
       notifyListeners();
-      print('No se pudo conectar al dispositivo: $ex');
+      //print('No se pudo conectar al dispositivo: $ex');
     }
   }
 
@@ -107,7 +107,7 @@ void _datareceives(Uint8List data) {
       _connectedDevice = null;
       _connectedDeviceName = null;
       _connectedDeviceAddress = null;
-      print('Dispositivo desconectado');
+      //print('Dispositivo desconectado');
       notifyListeners();
     }
   }
@@ -121,7 +121,7 @@ void _datareceives(Uint8List data) {
     _weight = newWeight;
     _weightStreamController.sink.add(newWeight);
     notifyListeners();
-    print('Nuevo Peso: $newWeight');
+    //print('Nuevo Peso: $newWeight');
   }
 
   void captureWeight(double weight) {
