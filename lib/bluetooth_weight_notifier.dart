@@ -33,7 +33,7 @@ class BluetoothWeightNotifier extends ChangeNotifier {
     }
   }
 
- String _buffer = "";
+String _buffer = "";
 
 void _datareceives(Uint8List data) {
   _buffer += String.fromCharCodes(data);
