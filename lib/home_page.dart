@@ -176,8 +176,30 @@ class WeightDisplay extends StatelessWidget {
         return ElevatedButton(
           onPressed: () {
             if (bluetoothNotifier.isConnected) {
+              if(weight > 0.00){
+                bluetoothNotifier.captureWeight(weight);
+              }
+              else {
+                showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: const Text('Error al capturar peso'),
+                    content: const Text('Para capturar el peso, debe contener un peso diferente de cero'),
+                    actions: <Widget>[
+                      TextButton(
+                        child: const Text('Aceptar'),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  );
+                },
+              );
+              }
               // Solo capturar el peso si está conectado al dispositivo Bluetooth
-              bluetoothNotifier.captureWeight(weight);
+              
             } else {
               // Mostrar un mensaje de error si no está conectado
               showDialog(
